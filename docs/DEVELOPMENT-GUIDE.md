@@ -10,7 +10,7 @@ feedback on your proposal, move onto the coding stage
 * Make sure the test coverage for your change is 80+% before you are ready
 * Run `make` and verify linter / tests pass without errors
 * Create a pull request against the master repo
-* All changes go through a code review and you must also sign the [Contributor License Agreement](https://cla-assistant.io/uber-go/kafka-client)
+* All changes go through a code review and you must also sign the [Contributor License Agreement](https://cla-assistant.io/temporalio/kafka-client)
 
 
 ## Coding Style and Conventions

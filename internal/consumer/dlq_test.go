@@ -27,7 +27,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/suite"
-	"github.com/uber-go/kafka-client/kafka"
+	"github.com/temporalio/kafka-client/kafka"
 	"github.com/uber-go/tally"
 	"go.uber.org/zap"
 )

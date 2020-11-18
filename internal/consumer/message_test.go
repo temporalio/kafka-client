@@ -26,7 +26,7 @@ import (
 
 	"github.com/Shopify/sarama"
 	"github.com/stretchr/testify/suite"
-	"github.com/uber-go/kafka-client/kafka"
+	"github.com/temporalio/kafka-client/kafka"
 )
 
 type MessageTestSuite struct {

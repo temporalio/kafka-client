@@ -27,8 +27,8 @@ import (
 	"github.com/Shopify/sarama"
 	cluster "github.com/bsm/sarama-cluster"
 	"github.com/stretchr/testify/assert"
-	"github.com/uber-go/kafka-client/internal/consumer"
-	"github.com/uber-go/kafka-client/kafka"
+	"github.com/temporalio/kafka-client/internal/consumer"
+	"github.com/temporalio/kafka-client/kafka"
 	"github.com/uber-go/tally"
 	"go.uber.org/zap"
 )
