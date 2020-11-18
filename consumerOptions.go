@@ -42,6 +42,12 @@ type (
 	clientIDOptions struct {
 		clientID string
 	}
+
+	saslOptions struct {
+		user      string
+		password  string
+		mechanism string
+	}
 )
 
 // WithDLQTopics creates a range consumer for the specified consumer DLQ topics.
@@ -88,4 +94,21 @@ func WithClientID(clientID string) ConsumerOption {
 
 func (o *clientIDOptions) apply(opts *consumer.Options) {
 	opts.ClientID = o.clientID
+}
+
+// WithSASLMechanism sets the SASL mechanism
+func WithSASLMechanism(user string, password string, mechanism string) ConsumerOption {
+	return &saslOptions{
+		user:      user,
+		password:  password,
+		mechanism: mechanism,
+	}
+}
+
+func (o *saslOptions) apply(opts *consumer.Options) {
+	opts.SASLConfig = &consumer.SASLConfig{
+		User:      o.user,
+		Password:  o.password,
+		Mechanism: o.mechanism,
+	}
 }

@@ -21,6 +21,11 @@
 package kafkaclient
 
 import (
+	"crypto/sha256"
+	"crypto/sha512"
+	"fmt"
+	"hash"
+	"strings"
 	"time"
 
 	"github.com/Shopify/sarama"
@@ -28,6 +33,7 @@ import (
 	"github.com/uber-go/kafka-client/internal/consumer"
 	"github.com/uber-go/kafka-client/kafka"
 	"github.com/uber-go/tally"
+	"github.com/xdg/scram"
 	"go.uber.org/zap"
 )
 
@@ -60,6 +66,13 @@ type (
 		initialOffset int64
 		// group name to use when consuming from this cluster
 		groupName string
+	}
+
+	// scramClient is used for SCRAM challenges for Kafka authentication
+	scramClient struct {
+		*scram.Client
+		*scram.ClientConversation
+		scram.HashGeneratorFcn
 	}
 )
 
@@ -314,6 +327,24 @@ func (c *consumerBuilder) uniqueTopics(topics []consumer.Topic) []consumer.Topic
 	return uniqueTopics
 }
 
+func (s *scramClient) Begin(userName, password, authzID string) (err error) {
+	s.Client, err = s.HashGeneratorFcn.NewClient(userName, password, authzID)
+	if err != nil {
+		return err
+	}
+	s.ClientConversation = s.Client.NewConversation()
+	return nil
+}
+
+func (s *scramClient) Step(challenge string) (response string, err error) {
+	response, err = s.ClientConversation.Step(challenge)
+	return
+}
+
+func (s *scramClient) Done() bool {
+	return s.ClientConversation.Done()
+}
+
 func buildOptions(config *kafka.ConsumerConfig, consumerOpts ...ConsumerOption) *consumer.Options {
 	opts := consumer.DefaultOptions()
 	if config.Concurrency > 0 {
@@ -361,6 +392,30 @@ func buildSaramaConfig(options *consumer.Options) *cluster.Config {
 	config.Consumer.Offsets.CommitInterval = options.OffsetCommitInterval
 	config.Consumer.Offsets.Initial = options.OffsetPolicy
 	config.Consumer.MaxProcessingTime = options.MaxProcessingTime
+
+	if options.SASLConfig != nil {
+		config.Config.Net.SASL.Enable = true
+		config.Config.Net.SASL.User = options.SASLConfig.User
+		config.Config.Net.SASL.Password = options.SASLConfig.Password
+
+		switch strings.ToLower(options.SASLConfig.Mechanism) {
+		case "scramsha256":
+			config.Net.SASL.Mechanism = sarama.SASLMechanism(sarama.SASLTypeSCRAMSHA256)
+			config.Net.SASL.SCRAMClientGeneratorFunc = func() sarama.SCRAMClient {
+				return &scramClient{HashGeneratorFcn: func() hash.Hash { return sha256.New() }}
+			}
+		case "scramsha512":
+			config.Net.SASL.Mechanism = sarama.SASLMechanism(sarama.SASLTypeSCRAMSHA512)
+			config.Net.SASL.SCRAMClientGeneratorFunc = func() sarama.SCRAMClient {
+				return &scramClient{HashGeneratorFcn: func() hash.Hash { return sha512.New() }}
+			}
+		case "":
+			panic("sasl mechanism not set")
+		default:
+			panic(fmt.Sprintf("unsupported sasl mechanism: %+v", options.SASLConfig.Mechanism))
+		}
+	}
+
 	return config
 }
 
